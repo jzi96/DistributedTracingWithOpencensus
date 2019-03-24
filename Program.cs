@@ -73,6 +73,16 @@ namespace distributedtracing
 
         private static void ConfigureOpencensus(string zipkinUri, string appInsightsKey)
         {
+            //if we want to have multiple tracers
+            //we should use agent mode and send first to agent
+
+            var ocExp = new OpenCensus.Exporter.Ocagent.OcagentExporter(
+                Tracing.ExportComponent
+                , "http://localhost:55678"
+                , Environment.MachineName
+                , "distributedtracingdemo"
+                );
+            ocExp.Start();
             if (!string.IsNullOrEmpty(zipkinUri))
             {
                 var zipK = new ZipkinTraceExporter(
