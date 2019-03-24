@@ -7,10 +7,28 @@ using OpenCensus.Trace.Config;
 using OpenCensus.Trace.Sampler;
 using System;
 
+//Metric
+
+using OpenCensus.Stats;
+using OpenCensus.Stats.Aggregations;
+using OpenCensus.Stats.Measurements;
+using OpenCensus.Tags;
+using OpenCensus.Stats.Measures;
+
 namespace distributedtracing
 {
     class Program
     {
+        static IMeasureLong numberofInvocations = MeasureLong.Create("operation execs", "Number of invokations of operations", "Calls");
+        static ITagKey tagEnv = TagKey.Create("environment");
+        static ITagKey tagMachine = TagKey.Create("machine");
+
+        static ITagContext tagContext = Tags.Tagger.CurrentBuilder
+            .Put(tagEnv, TagValue.Create("demo"))
+            .Put(tagMachine,TagValue.Create(Environment.MachineName))
+            .Build();
+
+        static IStatsRecorder recorder = Stats.StatsRecorder;
         static void Main(string[] args)
         {
             string z = args.Length > 0 ? args[0] : null;
@@ -20,14 +38,23 @@ namespace distributedtracing
             var tracer = Tracing.Tracer;
             using(var span = tracer.SpanBuilder("rootspan").StartScopedSpan())
             {
+
+
                 Console.WriteLine("myoperations");
                 RunChildOperation();
                 RunChildOperation();
             }
+
+            //Force send of all data; gacefull shutdown
+            Tracing.ExportComponent.SpanExporter.Dispose();
         }
 
         private static void RunChildOperation(int level = 1)
         {
+            //increment the counter
+            Stats.StatsRecorder.NewMeasureMap()
+                .Put(numberofInvocations, 1)
+                .Record(tagContext);
             var tracer = Tracing.Tracer;
             using (var span = tracer.SpanBuilder("op on level " + level).StartScopedSpan())
             {
@@ -36,9 +63,11 @@ namespace distributedtracing
                 {
                     space += "  ";
                 }
-                Console.WriteLine(space + " level op");
-                if(level<5)
-                    RunChildOperation(level+1);
+                Console.WriteLine(space + " level op " + level);
+                if (level < 3)
+                    RunChildOperation(level + 1);
+                if (level < 5)
+                    RunChildOperation(level + 1);
             }
         }
 
@@ -65,6 +94,14 @@ namespace distributedtracing
                     config);
                 appI.Start();
             }
+            
+            //Metrics
+            //define the measure to be used
+            // context fields defined, that will be attached
+            var invokeView = View.Create(ViewName.Create("executioncounts"), "Number of execs", numberofInvocations, Count.Create(), new[] { tagEnv, tagMachine });
+            //register
+            Stats.ViewManager.RegisterView(invokeView);
+
             // 2. Configure 100% sample rate for the purposes of the demo
             ITraceConfig traceConfig = Tracing.TraceConfig;
             ITraceParams currentConfig = traceConfig.ActiveTraceParams;
