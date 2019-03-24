@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenCensus" Version="0.1.0-alpha-42253" />
+    <PackageReference Include="OpenCensus.Collector.Dependencies" Version="0.1.0-alpha-42253" />
+    <PackageReference Include="OpenCensus.Exporter.ApplicationInsights" Version="0.1.0-alpha-42253" />
+    <PackageReference Include="OpenCensus.Exporter.Zipkin" Version="0.1.0-alpha-42253" />
+  </ItemGroup>
+
+</Project>
